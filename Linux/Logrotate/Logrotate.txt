@@ -20,16 +20,14 @@ Rotacionar os logs de um serviço fictício (/var/log/minhaapp/*.log) semanalmen
 
 🛠️ Como testar a configuração
 Você pode testar a configuração do logrotate com o comando:
-
 logrotate --debug /etc/logrotate.d/minhaapp
-Para forçar a rotação manualmente:
 
+Para forçar a rotação manualmente:
 logrotate -f /etc/logrotate.d/minhaapp
 
 📦 Dica Extra: Verificar logrotate global
 O arquivo principal de configuração do logrotate é:
-
 /etc/logrotate.conf
-Ele pode conter diretivas globais e incluir o diretório /etc/logrotate.d/, como:
 
+Ele pode conter diretivas globais e incluir o diretório /etc/logrotate.d/, como:
 include /etc/logrotate.d
