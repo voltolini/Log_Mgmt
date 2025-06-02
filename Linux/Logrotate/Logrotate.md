@@ -4,13 +4,13 @@ Rotacionar os logs de um serviço fictício (/var/log/minhaapp/*.log) semanalmen
 📄 Arquivo de configuração: /etc/logrotate.d/minhaapp
 
 /var/log/minhaapp/*.log {
-    weekly                 # Roda semanalmente
-    rotate 4              # Mantém 4 arquivos antigos
-    compress              # Compacta os logs antigos com gzip
-    delaycompress         # Adia a compressão até a próxima rotação
-    missingok             # Não dá erro se o log não existir
-    notifempty            # Não roda se o log estiver vazio
-    create 0640 root adm  # Cria novo log com permissões definidas
+    weekly                    # Roda semanalmente
+    rotate 4                  # Mantém 4 arquivos antigos
+    compress                  # Compacta os logs antigos com gzip
+    delaycompress             # Adia a compressão até a próxima rotação
+    missingok                 # Não dá erro se o log não existir
+    notifempty                # Não roda se o log estiver vazio
+    create 0640 root adm      # Cria novo log com permissões definidas
     postrotate
         # Reinicia o serviço para que ele comece a escrever no novo arquivo de log
         systemctl reload minhaapp > /dev/null 2>&1 || true
