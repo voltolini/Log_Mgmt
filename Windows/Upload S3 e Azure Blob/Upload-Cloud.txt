@@ -1,0 +1,90 @@
+🌐Versão com Upload para S3 e Azure Blob
+Você pode escolher usar apenas um dos serviços ou ambos. Segue o código com ambas as integrações (condicionalmente habilitadas).
+
+✅ Pré-requisitos
+Para Amazon S3:
+Instale o AWS Tools for PowerShell:
+Install-Module -Name AWSPowerShell -Scope CurrentUser
+
+Configure suas credenciais com:
+Set-AWSCredential -AccessKey "SUA_CHAVE" -SecretKey "SUA_SENHA" -StoreAs "Default"
+
+Para Azure Blob:
+Instale o módulo Az:
+Install-Module -Name Az -Scope CurrentUser
+
+Faça login com:
+Connect-AzAccount
+💻 Script Atualizado: Gerenciar-Logs-Cloud.ps1
+
+# IMPORTAÇÃO DOS MÓDULOS
+Import-Module AWSPowerShell -ErrorAction SilentlyContinue
+Import-Module Az.Accounts -ErrorAction SilentlyContinue
+Import-Module Az.Storage -ErrorAction SilentlyContinue
+
+# ==== CONFIGURAÇÕES GERAIS ====
+$logTypes = @("System", "Application", "Security")
+$exportRoot = "C:\Logs\Exportados"
+$daysToKeep = 30
+$today = Get-Date -Format "yyyy-MM-dd"
+$zipName = "Logs_$env:COMPUTERNAME`_$today.zip"
+$zipFullPath = "$exportRoot\$zipName"
+
+# ==== S3 ====
+$useS3 = $true
+$s3BucketName = "seu-bucket-logs"
+$s3KeyPrefix = "logs/$env:COMPUTERNAME/$zipName"
+
+# ==== AZURE ====
+$useAzure = $true
+$storageAccountName = "nomedaconta"
+$storageContainerName = "logs"
+$resourceGroupName = "SeuResourceGroup"
+$blobName = "$env:COMPUTERNAME/$zipName"
+
+# ==== EXPORTAÇÃO DE LOGS ====
+if (!(Test-Path $exportRoot)) {
+    New-Item -ItemType Directory -Path $exportRoot -Force
+}
+foreach ($log in $logTypes) {
+    wevtutil epl $log "$exportRoot\$log-$today.evtx"
+}
+
+# ==== COMPACTAÇÃO ====
+if (Test-Path $zipFullPath) {
+    Remove-Item $zipFullPath -Force
+}
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory($exportRoot, $zipFullPath)
+
+# ==== UPLOAD PARA S3 ====
+if ($useS3 -and (Test-Path $zipFullPath)) {
+    Write-Host "Enviando para Amazon S3..."
+    Write-S3Object -BucketName $s3BucketName -File $zipFullPath -Key $s3KeyPrefix -Region us-east-1
+    Write-Host "Upload para S3 concluído."
+}
+
+# ==== UPLOAD PARA AZURE BLOB ====
+if ($useAzure -and (Test-Path $zipFullPath)) {
+    Write-Host "Enviando para Azure Blob..."
+    $storageAccount = Get-AzStorageAccount -ResourceGroupName $resourceGroupName -Name $storageAccountName
+    $ctx = $storageAccount.Context
+    Set-AzStorageBlobContent -File $zipFullPath -Container $storageContainerName -Blob $blobName -Context $ctx
+    Write-Host "Upload para Azure concluído."
+}
+
+# ==== LIMPEZA DE ARQUIVOS ANTIGOS ====
+Get-ChildItem $exportRoot -Recurse -Include *.evtx, *.zip | Where-Object {
+    $_.LastWriteTime -lt (Get-Date).AddDays(-$daysToKeep)
+} | Remove-Item -Force
+
+Write-Output "Processo de gerenciamento de logs concluído com sucesso em $today"
+☁️ Resumo da Funcionalidade Cloud:
+Serviço	O que faz
+Amazon S3	Envia o ZIP diretamente para um bucket em um caminho estruturado
+Azure Blob	Faz upload para o container usando contexto da conta de storage
+
+🔒 Segurança:
+As credenciais devem ser protegidas.
+
+Prefira usar perfis de IAM (AWS) e identidade gerenciada (Azure) para produção.
